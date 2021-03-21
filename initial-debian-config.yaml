@@ -1,0 +1,50 @@
+---
+- name: Perform initial Debian configuration.
+  become: true
+  hosts: linuxhosts
+
+  vars_files:
+    - vars/systems.yaml
+
+  vars:
+    host:
+      category: '{{ systems[(ansible_hostname | lower)]["category"] }}'
+      name: '{{ ansible_hostname | lower }}'
+    packages:
+      install: '{{ (systems["all"]["packages"]["install"] | default([])) + (systems[host.category]["packages"]["install"] | default([])) + (systems[host.name]["packages"]["install"] | default([])) }}'
+      uninstall: '{{ (systems["all"]["packages"]["uninstall"] | default([])) + (systems[host.category]["packages"]["uninstall"] | default([])) + (systems[host.name]["packages"]["uninstall"] | default([])) }}'
+    python_modules: '{{ (systems["all"]["python_modules"] | default([])) + (systems[host.category]["python_modules"] | default([])) + (systems[host.name]["python_modules"] | default([])) }}'
+
+  tasks:
+
+    - name: Update apt cache and all installed packages.
+      apt:
+        cache_valid_time: 3600
+        update_cache: yes
+        upgrade: 'yes'
+
+    - name: Install essential packages.
+      package:
+        name: '{{ packages.install }}'
+        state: present
+
+    - name: Uninstall unused packages.
+      package:
+        name: '{{ packages.uninstall }}'
+        state: absent
+
+    - name: Install required Python modules.
+      pip:
+        name: '{{ python_modules }}'
+
+    - name: Enable shell history searching.
+      become_user: '{{ user }}'
+      lineinfile:
+        create: yes
+        line: '{{ item }}'
+        mode: '644'
+        path: '~/.inputrc'
+      with_items:
+        - '# Enable history searching with the up/down arrows:'
+        - '"\e[A": history-search-backward'
+        - '"\e[B": history-search-forward'

@@ -1,0 +1,60 @@
+---
+- name: Configure the Firefox profile for a user.
+  become: yes
+  become_user: '{{ user }}'
+  hosts: laptops:&linuxhosts
+
+  vars_files:
+    - vars/users.yaml
+
+  vars:
+    preferences:
+      firefox: '{{ (users["all"]["preferences"]["firefox"] | default([])) + (users[user]["preferences"]["firefox"] | default([])) }}'
+
+  tasks:
+
+    - name: Get Firefox profile name.
+      changed_when: false
+      register: ff_profile
+      shell: grep 'Default=.*\.default-release' ~/.mozilla/firefox/profiles.ini | cut -d= -f2
+
+    - name: Fail if Firefox profile was not detected.
+      fail:
+        msg: 'Failed to get Firefox profile: please launch and close Firefox as {{ user }}.'
+      when: ff_profile.rc != 0 or not ff_profile.stdout
+
+    - name: Make Firefox the default browser.
+      copy:
+        content: |
+          [Default Applications]
+          x-scheme-handler/http=firefox.desktop
+          x-scheme-handler/https=firefox.desktop
+          text/html=firefox.desktop
+          application/x-extension-htm=firefox.desktop
+          application/x-extension-html=firefox.desktop
+          application/x-extension-shtml=firefox.desktop
+          application/xhtml+xml=firefox.desktop
+          application/x-extension-xht=firefox.desktop
+          text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;multipart/related;application/x-mimearchive;message/rfc822;=firefox.desktop
+
+          [Added Associations]
+          x-scheme-handler/http=firefox.desktop;
+          x-scheme-handler/https=firefox.desktop;
+          text/html=firefox.desktop;
+          application/x-extension-htm=firefox.desktop;
+          application/x-extension-html=firefox.desktop;
+          application/x-extension-shtml=firefox.desktop;
+          application/xhtml+xml=firefox.desktop;
+          application/x-extension-xht=firefox.desktop;
+          text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;multipart/related;application/x-mimearchive;message/rfc822;=firefox.desktop;
+        dest: ~/.config/mimeapps.list
+        mode: '664'
+
+    - name: Configure Firefox preferences.
+      lineinfile:
+        create: yes
+        line: 'user_pref("{{ item.option }}", {{ item.value }});'
+        mode: '600'
+        path: '~/.mozilla/firefox/{{ ff_profile.stdout }}/user.js'
+        regexp: '^user_pref\("{{ item.option }}"'
+      with_items: '{{ preferences.firefox }}'

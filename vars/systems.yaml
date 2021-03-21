@@ -1,0 +1,31 @@
+---
+systems:
+  all:
+    packages:
+      install: []
+      uninstall: []
+  laptops:
+    firewall:
+      ssh_from_ips:
+        - 192.168.1.100/32 # Specific host
+        - 192.168.2.0/24 # LAN segment
+    hardware:
+      bluetooth:
+        enabled: true
+    packages:
+      install:
+        - firefox
+        - guake
+        - keepassxc
+        - krita
+        - libreoffice-writer
+        - python3-pip
+        - rdesktop
+      uninstall:
+        - libreoffice-math
+    python_modules:
+      - psutil # Required by dconf plugin.
+  evm:
+    category: laptops
+  lenny:
+    category: laptops

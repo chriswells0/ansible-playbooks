@@ -1,0 +1,105 @@
+---
+- name: Install and configure sync tools for a user.
+  become: yes
+  hosts: laptops:&linuxhosts
+
+  vars_files:
+    - vars/users.yaml
+
+  vars:
+    host:
+      name: '{{ ansible_hostname | lower }}'
+
+  tasks:
+
+    - name: Add an apt signing key for Syncthing.
+      apt_key:
+        state: present
+        url: https://syncthing.net/release-key.gpg
+
+    - name: Add PPA for Nextcloud and Syncthing.
+      apt_repository:
+        repo: '{{ item }}'
+      with_items:
+        - deb https://apt.syncthing.net/ syncthing release
+        - ppa:nextcloud-devs/client
+
+    - name: Install Nextcloud and Syncthing.
+      package:
+        name:
+          - nextcloud-desktop
+          - syncthing
+        state: present
+
+    - name: Create directories for config/sync.
+      become_user: '{{ user }}'
+      file:
+        mode: '{{ "0700" if item == "~/.config/syncthing" else "0775" }}'
+        path: '{{ item }}'
+        state: directory
+      with_items:
+        - ~/.config/autostart
+        - ~/.config/Nextcloud
+        - ~/.config/syncthing
+        - ~/Nextcloud
+
+    - name: Configure the Nextcloud client.
+      become_user: '{{ user }}'
+      copy:
+        content: |
+          [General]
+          confirmExternalStorage=true
+          newBigFolderSizeLimit=500
+          optionalServerNotifications=true
+          useNewBigFolderSizeLimit=true
+
+          [Accounts]
+          0\Folders\1\ignoreHiddenFiles=false
+          0\Folders\1\journalPath={{ users[user]["nextcloud"]["journal_path"] }}
+          0\Folders\1\localPath=/home/{{ user }}/Nextcloud/
+          0\Folders\1\paused=false
+          0\Folders\1\targetPath=/
+          0\authType=webflow
+          0\url=https://{{ users[user]["nextcloud"]["host"] }}
+          0\user=@Invalid()
+          0\webflow_user={{ users[user]["nextcloud"]["username"] }}
+          version=2
+        dest: ~/.config/Nextcloud/nextcloud.cfg
+        mode: '664'
+
+    - name: Enable autostart for the Nextcloud client.
+      become_user: '{{ user }}'
+      copy:
+        content: |
+          [Desktop Entry]
+          Name=Nextcloud
+          GenericName=File Synchronizer
+          Exec=/usr/bin/nextcloud
+          Terminal=false
+          Icon=Nextcloud
+          Categories=Network
+          Type=Application
+          StartupNotify=false
+          X-GNOME-Autostart-enabled=true
+        dest: ~/.config/autostart/com.nextcloud.desktopclient.nextcloud.desktop
+        mode: '644'
+
+    - name: Copy Syncthing config files.
+      become_user: '{{ user }}'
+      copy:
+        dest: '{{ item.file }}'
+        mode: '{{ item.mode }}'
+        src: ~/Backups/{{ host.name }}{{ item.file }}
+      with_items:
+        - file: /home/{{ user }}/.config/syncthing/cert.pem
+          mode: 664
+        - file: /home/{{ user }}/.config/syncthing/config.xml
+          mode: 600
+        - file: /home/{{ user }}/.config/syncthing/csrftokens.txt
+          mode: 600
+        - file: /home/{{ user }}/.config/syncthing/https-cert.pem
+          mode: 664
+        - file: /home/{{ user }}/.config/syncthing/https-key.pem
+          mode: 600
+        - file: /home/{{ user }}/.config/syncthing/key.pem
+          mode: 600

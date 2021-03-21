@@ -1,0 +1,144 @@
+---
+users:
+  ansible:
+    group: sudo-nopasswd
+    name: ansible
+    public_key: '{{ lookup("file", lookup("env", "HOME") + "/.ssh/ansible.id_rsa.pub") }}'
+  guest:
+    enabled: no
+  all:
+    autostart: []
+    directories:
+      - path: ~/.config/autostart
+    plank:
+      add:
+        - firefox
+        - io.elementary.files
+        - org.keepassxc.KeePassXC
+      remove:
+        - gala-multitaskingview
+        - io.elementary.appcenter
+        - io.elementary.calendar
+        - io.elementary.switchboard
+        - io.elementary.videos
+        - org.gnome.Epiphany
+        - org.pantheon.mail
+    # Boolean values need to be in single quotes so they are lowercase in the prefs file.
+    # String values need to include the double quotes to include them in the prefs file.
+    preferences:
+      dconf:
+        - option: /apps/guake/general/use-popup
+          value: 'false'
+        - option: /apps/guake/general/window-ontop
+          value: 'false'
+        - option: /apps/guake/general/window-refocus
+          value: 'true'
+        - option: /apps/guake/general/window-width
+          value: 50
+        - option: /apps/guake/keybindings/global/show-hide
+          value: "'F10'"
+        - option: /io/elementary/desktop/wingpanel/power/show-percentage
+          value: 'true'
+        - option: /net/launchpad/plank/docks/dock1/icon-size
+          value: 64
+        - option: /org/gnome/desktop/peripherals/touchpad/natural-scroll
+          value: 'false'
+        - option: /org/gnome/desktop/peripherals/touchpad/speed
+          value: 0.5
+        - option: /org/gnome/desktop/privacy/remove-old-temp-files
+          value: 'true'
+        - option: /org/gnome/settings-daemon/plugins/color/night-light-enabled
+          value: 'true'
+        # Automatically adjust display brightness (doesn't work in a VM):
+        - option: /org/gnome/settings-daemon/plugins/power/ambient-enabled
+          value: 'true'
+        # TODO: This change isn't taking effect.
+        # - option: /io/elementary/desktop/wingpanel/datetime/clock-format
+        #   value: "'12h'"
+        # - option: /org/gnome/desktop/interface/clock-format
+        #   value: "'12h'"
+      firefox:
+        - option: browser.startup.page
+          value: 3 # Restore tabs.
+        - option: browser.search.widget.inNavBar
+          value: 'true'
+        - option: browser.urlbar.placeholderName
+          value: '"DuckDuckGo"'
+        - option: browser.urlbar.suggest.searches
+          value: 'false'
+        - option: browser.contentblocking.category
+          value: '"custom"'
+        - option: privacy.annotate_channels.strict_list.enabled
+          value: 'true'
+        - option: privacy.trackingprotection.enabled
+          value: 'true'
+        - option: privacy.trackingprotection.socialtracking.enabled
+          value: 'true'
+        - option: privacy.donottrackheader.enabled
+          value: 'true'
+        - option: signon.rememberSignons
+          value: 'false'
+        - option: extensions.formautofill.creditCards.enabled
+          value: 'false'
+        - option: browser.discovery.enabled # Personalized extension recommendations.
+          value: 'false'
+        - option: datareporting.healthreport.uploadEnabled
+          value: 'false'
+        - option: app.shield.optoutstudies.enabled
+          value: 'false'
+        - option: dom.security.https_only_mode
+          value: 'true'
+        - option: dom.security.https_only_mode_ever_enabled
+          value: 'true'
+        - option: browser.pageActions.persistedActions # Page actions listed in the address bar.
+          value: '"{\"version\":1,\"ids\":[\"bookmark\",\"pinTab\",\"bookmarkSeparator\",\"copyURL\",\"emailLink\",\"addSearchEngine\",\"sendToDevice\",\"pocket\",\"screenshots_mozilla_org\"],\"idsInUrlbar\":[\"bookmark\"]}"'
+        - option: browser.uiCustomization.state # Navigation bar / toolbar.
+          value: '"{\"placements\":{\"widget-overflow-fixed-list\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"home-button\",\"urlbar-container\",\"downloads-button\",\"search-container\",\"ublock0_raymondhill_net-browser-action\",\"jid1-mnnxcxisbpnsxq_jetpack-browser-action\",\"_c2c003ee-bd69-42a2-b0e9-6f34222cb046_-browser-action\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"PersonalToolbar\":[\"import-button\",\"personal-bookmarks\"]},\"seen\":[],\"dirtyAreaCache\":[\"nav-bar\",\"PersonalToolbar\",\"toolbar-menubar\",\"TabsToolbar\"],\"currentVersion\":16,\"newElementCount\":4}"'
+      keepassxc:
+        - option: AutoSaveOnExit
+          section: General
+          value: 'true'
+        - option: AutoTypeStartDelay
+          section: General
+          value: 500
+        - option: HideWindowOnCopy
+          section: General
+          value: 'true'
+        - option: MinimizeOnCopy
+          section: General
+          value: 'true'
+    rdesktop_hosts:
+      - Beastie
+  chris:
+    autostart:
+      - dest: '~/.config/autostart/guake.desktop'
+        src: '/usr/share/guake/data/guake.template.desktop'
+    nextcloud:
+      host: cloud.example.com
+      journal_path: ._sync_012345abcdef.db
+      username: chris
+    plank:
+      add:
+        - Beastie
+      remove:
+        - io.elementary.music
+        - io.elementary.photos
+    preferences:
+      firefox:
+        # TODO: This isn't adding the SSB option.
+        # - option: browser.ssb.enabled
+        #   value: 'true' # Enable site-specific browser.
+        - option: network.cookie.cookieBehavior
+          value: 2 # Block all cookies.
+  crystal:
+    nextcloud:
+      host: cloud.example.net
+      journal_path: ._sync_abcdef012345.db
+      username: crystal
+    plank:
+      add:
+        - org.kde.krita
+    preferences:
+      firefox:
+        - option: network.cookie.cookieBehavior
+          value: 1 # Block all 3rd-party cookies.

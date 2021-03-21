@@ -1,0 +1,44 @@
+---
+- name: Bootstrap a FreeBSD/Linux system to be managed by Ansible.
+# description: Targets systems that are accessible over SSH but are not yet under Ansible management. Python must already be installed on the remote host.
+  become: true
+  hosts: all
+
+  vars_files:
+    - vars/users.yaml
+
+  handlers:
+
+    - name: Sync password DB
+      command: pwd_mkdb -p /etc/master.passwd
+      when: ansible_system == "FreeBSD"
+
+  tasks:
+
+    - name: Create a group for the ansible user.
+      group:
+        name: '{{ users.ansible.group }}'
+        state: present
+
+    - name: Allow the group to use sudo without a password.
+      lineinfile:
+        line: '%{{ users.ansible.group }} ALL=(ALL) NOPASSWD: ALL'
+        path: '{{ user_etc }}/sudoers'
+        regexp: '^%{{ users.ansible.group }}'
+        state: present
+        validate: 'visudo -cf %s'
+
+    - name: Create the ansible user and add it to the passwordless sudo group.
+      user:
+        append: yes
+        groups: '{{ users.ansible.group }}'
+        name: '{{ users.ansible.name }}'
+        state: present
+        system: yes
+      notify: Sync password DB
+
+    - name: Set SSH authorized key for the ansible user.
+      authorized_key:
+        key: '{{ users.ansible.public_key }}'
+        state: present
+        user: '{{ users.ansible.name }}'

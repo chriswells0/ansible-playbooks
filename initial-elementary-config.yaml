@@ -1,0 +1,153 @@
+---
+- name: Perform initial Debian configuration.
+  import_playbook: initial-debian-config.yaml
+
+- name: Perform initial elementary OS configuration.
+  become: yes
+  hosts: laptops:&linuxhosts
+
+  vars_files:
+    - vars/systems.yaml
+    - vars/users.yaml
+
+  vars:
+    host:
+      category: '{{ systems[(ansible_hostname | lower)]["category"] }}'
+      name: '{{ ansible_hostname | lower }}'
+    autostart: '{{ (users["all"]["autostart"] | default([])) + (users[user]["autostart"] | default([])) }}'
+    directories: '{{ (users["all"]["directories"] | default([])) + (users[user]["directories"] | default([])) }}'
+    firewall:
+      ssh_from_ips: '{{ (systems["all"]["firewall"]["ssh_from_ips"] | default([])) + (systems[host.category]["firewall"]["ssh_from_ips"] | default([])) + (systems[host.name]["firewall"]["ssh_from_ips"] | default([])) }}'
+    hardware:
+      bluetooth:
+        enabled: '{{ (systems[host.category]["hardware"]["bluetooth"]["enabled"] | default(false)) or (systems[host.name]["hardware"]["bluetooth"]["enabled"] | default(false)) }}'
+    packages:
+      install: '{{ (systems["all"]["packages"]["install"] | default([])) + (systems[host.category]["packages"]["install"] | default([])) + (systems[host.name]["packages"]["install"] | default([])) }}'
+    plank:
+      add: '{{ (users["all"]["plank"]["add"] | default([])) + (users[user]["plank"]["add"] | default([])) }}'
+      remove: '{{ (users["all"]["plank"]["remove"] | default([])) + (users[user]["plank"]["remove"] | default([])) }}'
+    preferences:
+      dconf: '{{ (users["all"]["preferences"]["dconf"] | default([])) + (users[user]["preferences"]["dconf"] | default([])) }}'
+      keepassxc: '{{ (users["all"]["preferences"]["keepassxc"] | default([])) + (users[user]["preferences"]["keepassxc"] | default([])) }}'
+    rdesktop_hosts: '{{ (users["all"]["rdesktop_hosts"] | default([])) + (users[user]["rdesktop_hosts"] | default([])) }}'
+
+  handlers:
+
+    - name: Restart LightDM
+      service:
+        name: lightdm
+        state: restarted
+
+  tasks:
+
+    - name: Allow limited SSH connections.
+      ufw:
+        direction: in
+        from_ip: '{{ item }}'
+        proto: tcp
+        rule: limit
+        state: enabled
+        to_port: '22'
+      with_items: '{{ firewall.ssh_from_ips }}'
+
+    - name: Deny all other incoming traffic by default.
+      ufw:
+        direction: incoming
+        policy: deny
+        state: enabled
+
+    - name: If desired, enable the Guest account.
+      lineinfile:
+        line: 'allow-guest=true'
+        path: /usr/share/lightdm/lightdm.conf.d/50-disable-guest.conf
+        regexp: '^allow-guest='
+        state: present
+      notify: Restart LightDM
+      when: users.guest.enabled
+
+    - name: Enable local network DNS resolution.
+      file:
+        dest: /etc/resolv.conf
+        force: yes
+        src: /run/systemd/resolve/resolv.conf
+        state: link
+
+    - name: Check whether Bluetooth is blocked.
+      ignore_errors: yes
+      register: bluetooth_blocked
+      shell: 'rfkill list bluetooth | grep "blocked: yes"'
+      when: hardware.bluetooth.enabled
+
+    - name: Enable Bluetooth if it is blocked.
+      command: 'rfkill unblock bluetooth'
+      when: hardware.bluetooth.enabled and bluetooth_blocked.rc == 0
+
+    # Must run before tasks that reference the shortcut such as adding items to the Plank. -- cwells
+    - name: Create shortcuts for rdesktop access.
+      copy:
+        content: |
+          [Desktop Entry]
+          Name={{ item }}
+          Comment=Remotely access {{ item }}
+          Type=Application
+          StartupNotify=true
+          Exec=rdesktop -f -x l -z {{ item }} %U
+          Icon=preferences-desktop-remote-desktop
+          Terminal=false
+          Categories=Network;RemoteAccess;
+        dest: /usr/share/applications/{{ item }}.desktop
+        mode: '644'
+      when: '"rdesktop" in packages.install'
+      with_items: '{{ rdesktop_hosts }}'
+
+    - name: Create required directories.
+      become_user: '{{ user }}'
+      file:
+        mode: '{{ item.mode | default("0775") }}'
+        path: '{{ item.path }}'
+        state: directory
+      with_items: '{{ directories }}'
+
+    - name: Enable autostart applications.
+      become_user: '{{ user }}'
+      copy:
+        dest: '{{ item.dest }}'
+        mode: '644'
+        remote_src: yes
+        src: '{{ item.src }}'
+      with_items: '{{ autostart }}'
+
+    - name: Apply dconf settings.
+      become_user: '{{ user }}'
+      community.general.dconf:
+        key: '{{ item.option }}'
+        value: '{{ item.value }}'
+      with_items: '{{ preferences.dconf }}'
+
+    - name: Remove default icons from Plank.
+      become_user: '{{ user }}'
+      file:
+        path: '~/.config/plank/dock1/launchers/{{ item }}.dockitem'
+        state: absent
+      with_items: '{{ plank.remove }}'
+
+    - name: Add desired icons to Plank.
+      become_user: '{{ user }}'
+      copy:
+        content: |
+          [PlankDockItemPreferences]
+          Launcher=file:///usr/share/applications/{{ item }}.desktop
+        dest: '~/.config/plank/dock1/launchers/{{ item }}.dockitem'
+        mode: '644'
+      with_items: '{{ plank.add }}'
+
+    - name: Configure KeePassXC if installed.
+      become_user: '{{ user }}'
+      community.general.ini_file:
+        no_extra_spaces: yes
+        path: ~/.config/keepassxc/keepassxc.ini
+        option: '{{ item.option }}'
+        section: '{{ item.section }}'
+        value: '{{ item.value }}'
+      when: '"keepassxc" in packages.install'
+      with_items: '{{ preferences.keepassxc }}'
