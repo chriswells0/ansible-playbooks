@@ -2,7 +2,15 @@
 
 A very small collection of flexible Ansible playbooks for initial configuration of FreeBSD and Debian/elementary OS hosts.
 
-The YAML examples below show the minimal properties needed to configure each specific playbook. See the vars directory for complete example files.
+The YAML examples below show the minimal properties needed to configure each specific playbook. See the [vars](vars) directory for complete example files.
+
+These playbooks are documented in the order they should be applied to a fresh system.
+
+- [bootstrap.yaml](#bootstrapyaml): Bootstrap a FreeBSD/Linux system to be managed by Ansible.
+- [initial-debian-config.yaml](#initial-debian-configyaml): Perform initial Debian configuration.
+- [initial-elementary-config.yaml](#initial-elementary-configyaml): Perform initial elementary OS configuration.
+- [firefox.yaml](#firefoxyaml): Configure the Firefox profile for a user.
+- [enable-sync.yaml](#enable-syncyaml): Install and configure sync tools for a user.
 
 ### bootstrap.yaml
 
@@ -80,7 +88,7 @@ ansible-playbook initial-debian-config.yaml -l <newHost>
 
 Perform initial elementary OS configuration.
 
-Includes [initial-debian-config.yaml](#initial-debian-config.yaml) plus the following tasks:
+Includes [initial-debian-config.yaml](#initial-debian-configyaml) plus the following tasks:
 
 - Allow limited SSH connections.
 - Deny all other incoming traffic by default.
@@ -293,6 +301,8 @@ ansible-playbook firefox.yaml -l <newHost> --extra-vars "user=chris"
 ### enable-sync.yaml
 
 Install and configure sync tools for a user.
+
+This playbook is geared toward elementary OS.
 
 - Add an apt signing key for Syncthing.
 - Add PPA for Nextcloud and Syncthing.
