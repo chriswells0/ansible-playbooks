@@ -4,6 +4,20 @@ systems:
     packages:
       install: []
       uninstall: []
+    syncthing:
+      config:
+        - file: /home/{{ user }}/.config/syncthing/cert.pem
+          mode: 664
+        - file: /home/{{ user }}/.config/syncthing/config.xml
+          mode: 600
+        - file: /home/{{ user }}/.config/syncthing/csrftokens.txt
+          mode: 600
+        - file: /home/{{ user }}/.config/syncthing/https-cert.pem
+          mode: 664
+        - file: /home/{{ user }}/.config/syncthing/https-key.pem
+          mode: 600
+        - file: /home/{{ user }}/.config/syncthing/key.pem
+          mode: 600
   laptops:
     firewall:
       ssh_from_ips:

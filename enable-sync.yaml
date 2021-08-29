@@ -1,5 +1,6 @@
 ---
 - name: Install and configure sync tools for a user.
+# description: This playbook is geared toward elementary OS.
   become: yes
   hosts: laptops:&linuxhosts
 
@@ -89,17 +90,5 @@
       copy:
         dest: '{{ item.file }}'
         mode: '{{ item.mode }}'
-        src: ~/Backups/{{ host.name }}{{ item.file }}
-      with_items:
-        - file: /home/{{ user }}/.config/syncthing/cert.pem
-          mode: 664
-        - file: /home/{{ user }}/.config/syncthing/config.xml
-          mode: 600
-        - file: /home/{{ user }}/.config/syncthing/csrftokens.txt
-          mode: 600
-        - file: /home/{{ user }}/.config/syncthing/https-cert.pem
-          mode: 664
-        - file: /home/{{ user }}/.config/syncthing/https-key.pem
-          mode: 600
-        - file: /home/{{ user }}/.config/syncthing/key.pem
-          mode: 600
+        src: ~/Backups/Ansible/{{ host.name }}{{ item.file }}
+      with_items: '{{ systems.all.syncthing.config }}'
