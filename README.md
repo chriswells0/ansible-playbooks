@@ -65,12 +65,12 @@ systems:
     packages:
       install:
         - firefox
+        - freerdp2-x11
         - guake
         - keepassxc
         - krita
         - libreoffice-writer
         - python3-pip
-        - rdesktop
       uninstall:
         - libreoffice-math
     python_modules:
@@ -96,7 +96,7 @@ Includes [initial-debian-config.yaml](#initial-debian-configyaml) plus the follo
 - Enable local network DNS resolution.
 - Check whether Bluetooth is blocked.
 - Enable Bluetooth if it is blocked.
-- Create shortcuts for rdesktop access.
+- Create shortcuts for RDP access.
 - Create required directories.
 - Enable autostart applications.
 - Apply dconf settings.
@@ -125,12 +125,12 @@ systems:
     packages:
       install:
         - firefox
+        - freerdp2-x11
         - guake
         - keepassxc
         - krita
         - libreoffice-writer
         - python3-pip
-        - rdesktop
       uninstall:
         - libreoffice-math
     python_modules:
@@ -204,7 +204,7 @@ users:
         - option: MinimizeOnCopy
           section: General
           value: 'true'
-    rdesktop_hosts:
+    rdp_hosts:
       - Beastie
   chris:
     autostart:

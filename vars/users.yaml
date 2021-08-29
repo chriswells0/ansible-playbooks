@@ -107,7 +107,7 @@ users:
         - option: MinimizeOnCopy
           section: General
           value: 'true'
-    rdesktop_hosts:
+    rdp_hosts:
       - Beastie
   chris:
     autostart:

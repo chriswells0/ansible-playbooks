@@ -29,7 +29,7 @@
     preferences:
       dconf: '{{ (users["all"]["preferences"]["dconf"] | default([])) + (users[user]["preferences"]["dconf"] | default([])) }}'
       keepassxc: '{{ (users["all"]["preferences"]["keepassxc"] | default([])) + (users[user]["preferences"]["keepassxc"] | default([])) }}'
-    rdesktop_hosts: '{{ (users["all"]["rdesktop_hosts"] | default([])) + (users[user]["rdesktop_hosts"] | default([])) }}'
+    rdp_hosts: '{{ (users["all"]["rdp_hosts"] | default([])) + (users[user]["rdp_hosts"] | default([])) }}'
 
   handlers:
 
@@ -83,7 +83,7 @@
       when: hardware.bluetooth.enabled and bluetooth_blocked.rc == 0
 
     # Must run before tasks that reference the shortcut such as adding items to the Plank. -- cwells
-    - name: Create shortcuts for rdesktop access.
+    - name: Create shortcuts for RDP access.
       copy:
         content: |
           [Desktop Entry]
@@ -91,14 +91,14 @@
           Comment=Remotely access {{ item }}
           Type=Application
           StartupNotify=true
-          Exec=rdesktop -f -x l -z {{ item }} %U
+          Exec=xfreerdp /f /multimon /network:lan /sound /u:{{ user }} /v:{{ item }}
           Icon=preferences-desktop-remote-desktop
           Terminal=false
           Categories=Network;RemoteAccess;
         dest: /usr/share/applications/{{ item }}.desktop
         mode: '644'
       when: '"rdesktop" in packages.install'
-      with_items: '{{ rdesktop_hosts }}'
+      with_items: '{{ rdp_hosts }}'
 
     - name: Create required directories.
       become_user: '{{ user }}'
