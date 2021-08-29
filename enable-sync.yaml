@@ -5,6 +5,7 @@
   hosts: laptops:&linuxhosts
 
   vars_files:
+    - vars/systems.yaml
     - vars/users.yaml
 
   vars:
@@ -66,6 +67,7 @@
           0\webflow_user={{ users[user]["nextcloud"]["username"] }}
           version=2
         dest: ~/.config/Nextcloud/nextcloud.cfg
+        force: no
         mode: '664'
 
     - name: Enable autostart for the Nextcloud client.
@@ -92,3 +94,9 @@
         mode: '{{ item.mode }}'
         src: ~/Backups/Ansible/{{ host.name }}{{ item.file }}
       with_items: '{{ systems.all.syncthing.config }}'
+
+    - name: Enable Syncthing service.
+      service:
+        enabled: yes
+        name: 'syncthing@{{ user}}'
+        state: started
