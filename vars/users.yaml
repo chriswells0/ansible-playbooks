@@ -10,6 +10,8 @@ users:
     autostart: []
     directories:
       - path: ~/.config/autostart
+    # Manages launchers for: /usr/share/applications/{{ item }}.desktop
+    # Saved as: ~/.config/plank/dock1/launchers/{{ item }}.dockitem
     plank:
       add:
         - firefox
@@ -17,9 +19,7 @@ users:
         - org.keepassxc.KeePassXC
       remove:
         - gala-multitaskingview
-        - io.elementary.appcenter
         - io.elementary.calendar
-        - io.elementary.switchboard
         - io.elementary.videos
         - org.gnome.Epiphany
         - org.pantheon.mail
@@ -27,6 +27,8 @@ users:
     # String values need to include the double quotes to include them in the prefs file.
     preferences:
       dconf:
+        - option: /apps/guake/general/use-audible-bell
+          value: 'true'
         - option: /apps/guake/general/use-popup
           value: 'false'
         - option: /apps/guake/general/window-ontop
@@ -41,14 +43,22 @@ users:
           value: 'true'
         - option: /net/launchpad/plank/docks/dock1/icon-size
           value: 64
+        - option: /org/gnome/desktop/a11y/mouse/secondary-click-enabled
+          value: 'true'
         - option: /org/gnome/desktop/peripherals/touchpad/natural-scroll
           value: 'false'
         - option: /org/gnome/desktop/peripherals/touchpad/speed
           value: 0.5
         - option: /org/gnome/desktop/privacy/remove-old-temp-files
           value: 'true'
+        - option: /org/gnome/settings-daemon/peripherals/touchscreen/orientation-lock
+          value: 'true'
         - option: /org/gnome/settings-daemon/plugins/color/night-light-enabled
           value: 'true'
+        - option: /org/gnome/settings-daemon/plugins/media-keys/decrease-text-size
+          value: "'<Shift><Super>underscore'"
+        - option: /org/gnome/settings-daemon/plugins/media-keys/increase-text-size
+          value: "'<Shift><Super>plus'"
         # Automatically adjust display brightness (doesn't work in a VM):
         - option: /org/gnome/settings-daemon/plugins/power/ambient-enabled
           value: 'true'
@@ -94,6 +104,8 @@ users:
           value: '"{\"version\":1,\"ids\":[\"bookmark\",\"pinTab\",\"bookmarkSeparator\",\"copyURL\",\"emailLink\",\"addSearchEngine\",\"sendToDevice\",\"pocket\",\"screenshots_mozilla_org\"],\"idsInUrlbar\":[\"bookmark\"]}"'
         - option: browser.uiCustomization.state # Navigation bar / toolbar.
           value: '"{\"placements\":{\"widget-overflow-fixed-list\":[],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"home-button\",\"urlbar-container\",\"downloads-button\",\"search-container\",\"ublock0_raymondhill_net-browser-action\",\"jid1-mnnxcxisbpnsxq_jetpack-browser-action\",\"_c2c003ee-bd69-42a2-b0e9-6f34222cb046_-browser-action\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"PersonalToolbar\":[\"import-button\",\"personal-bookmarks\"]},\"seen\":[],\"dirtyAreaCache\":[\"nav-bar\",\"PersonalToolbar\",\"toolbar-menubar\",\"TabsToolbar\"],\"currentVersion\":16,\"newElementCount\":4}"'
+        - option: fission.autostart
+          value: 'true'
       keepassxc:
         - option: AutoSaveOnExit
           section: General
@@ -138,6 +150,9 @@ users:
     plank:
       add:
         - org.kde.krita
+      remove:
+        - io.elementary.appcenter
+        - io.elementary.switchboard
     preferences:
       firefox:
         - option: network.cookie.cookieBehavior

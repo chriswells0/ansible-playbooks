@@ -28,12 +28,15 @@ systems:
         enabled: true
     packages:
       install:
+        - chromium-browser
         - firefox
         - freerdp2-x11
         - guake
         - keepassxc
         - krita
         - libreoffice-writer
+        - libutempter0 # Fixes issue exiting Guake tabs.
+        - net-tools
         - python3-pip
       uninstall:
         - libreoffice-math
