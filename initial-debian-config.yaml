@@ -1,6 +1,6 @@
 ---
 - name: Perform initial Debian configuration.
-  become: true
+  become: yes
   hosts: linuxhosts
 
   vars_files:
@@ -36,15 +36,15 @@
     - name: Install required Python modules.
       pip:
         name: '{{ python_modules }}'
+      when: python_modules
 
     - name: Enable shell history searching.
       become_user: '{{ user }}'
-      lineinfile:
+      blockinfile:
+        block: |
+          "\e[A": history-search-backward
+          "\e[B": history-search-forward
         create: yes
-        line: '{{ item }}'
+        marker: '# {mark}: Shell History Searching'
         mode: '644'
-        path: '~/.inputrc'
-      with_items:
-        - '# Enable history searching with the up/down arrows:'
-        - '"\e[A": history-search-backward'
-        - '"\e[B": history-search-forward'
+        path: ~/.inputrc
