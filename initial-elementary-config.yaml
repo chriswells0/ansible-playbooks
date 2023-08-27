@@ -21,6 +21,8 @@
     hardware:
       bluetooth:
         enabled: '{{ (systems[host.category]["hardware"]["bluetooth"]["enabled"] | default(false)) or (systems[host.name]["hardware"]["bluetooth"]["enabled"] | default(false)) }}'
+      wowlan:
+        enabled: '{{ (systems[host.category]["hardware"]["wowlan"]["enabled"] | default(false)) or (systems[host.name]["hardware"]["wowlan"]["enabled"] | default(false)) }}'
     packages:
       install: '{{ (systems["all"]["packages"]["install"] | default([])) + (systems[host.category]["packages"]["install"] | default([])) + (systems[host.name]["packages"]["install"] | default([])) }}'
     plank:
@@ -118,6 +120,18 @@
           done
         dest: /etc/cron.hourly/remove-old-kernels
         mode: '755'
+
+    - name: Check whether Wake-on-WLAN is enabled.
+      changed_when: false
+      ignore_errors: yes
+      no_log: yes
+      register: wowlan_enabled
+      shell: 'iw phy0 wowlan show | grep "enabled"'
+      when: hardware.wowlan.enabled
+
+    - name: Enable Wake-on-WLAN if it is disabled.
+      command: 'iw phy0 wowlan enable magic-packet'
+      when: hardware.wowlan.enabled and wowlan_enabled.rc != 0
 
     - name: Check whether Bluetooth is blocked.
       changed_when: false
