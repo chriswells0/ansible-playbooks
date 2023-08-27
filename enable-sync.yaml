@@ -53,12 +53,13 @@
           confirmExternalStorage=true
           newBigFolderSizeLimit=500
           optionalServerNotifications=true
+          showCallNotifications=true
           useNewBigFolderSizeLimit=true
 
           [Accounts]
           0\Folders\1\ignoreHiddenFiles=false
           0\Folders\1\journalPath={{ users[user]["nextcloud"]["journal_path"] }}
-          0\Folders\1\localPath=/home/{{ user }}/Nextcloud/
+          0\Folders\1\localPath=/home/{{ user }}/Cloud/
           0\Folders\1\paused=false
           0\Folders\1\targetPath=/
           0\authType=webflow
@@ -94,6 +95,16 @@
         mode: '{{ item.mode }}'
         src: ~/Backups/Ansible/{{ host.name }}{{ item.file }}
       with_items: '{{ systems.all.syncthing.config }}'
+
+    - name: Create firewall rules.
+      ufw:
+        direction: in
+        from_ip: '{{ item.from_ip }}'
+        protocol: '{{ item.protocol | default("tcp") }}'
+        rule: '{{ item.rule | default("allow") }}'
+        state: enabled
+        to_port: '{{ item.to_port }}'
+      with_items: '{{ systems.all.syncthing.firewall }}'
 
     - name: Enable Syncthing service.
       service:
