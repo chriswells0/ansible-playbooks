@@ -27,7 +27,7 @@
       add: '{{ (users["all"]["plank"]["add"] | default([])) + (users[user]["plank"]["add"] | default([])) }}'
       remove: '{{ (users["all"]["plank"]["remove"] | default([])) + (users[user]["plank"]["remove"] | default([])) }}'
     preferences:
-      dconf: '{{ (users["all"]["preferences"]["dconf"] | default([])) + (users[user]["preferences"]["dconf"] | default([])) }}'
+      dconf: '{{ (users["all"]["preferences"]["dconf"] | default([])) + (users[user]["preferences"]["dconf"] | default([])) + (systems[host.name]["preferences"]["dconf"] | default([])) }}'
       keepassxc: '{{ (users["all"]["preferences"]["keepassxc"] | default([])) + (users[user]["preferences"]["keepassxc"] | default([])) }}'
     rdp_hosts: '{{ (users["all"]["rdp_hosts"] | default([])) + (users[user]["rdp_hosts"] | default([])) }}'
 
@@ -44,7 +44,7 @@
       ufw:
         direction: in
         from_ip: '{{ item }}'
-        proto: tcp
+        protocol: tcp
         rule: limit
         state: enabled
         to_port: '22'
@@ -72,8 +72,57 @@
         src: /run/systemd/resolve/resolv.conf
         state: link
 
-    - name: Check whether Bluetooth is blocked.
+    - name: Check whether resolvconf exists.
+      changed_when: false
       ignore_errors: yes
+      register: resolvconf_exists
+      shell: which resolvconf > /dev/null 2>&1
+
+    - name: Symlink resolvectl to resolveconf.
+      file:
+        dest: /usr/local/bin/resolvconf
+        force: yes
+        src: /usr/bin/resolvectl
+        state: link
+      when: resolvconf_exists.rc != 0
+
+    - name: Upload backup file for monitor settings (login screen).
+      copy:
+        dest: /var/lib/lightdm/.config/
+        group: lightdm
+        mode: '644'
+        owner: lightdm
+        src: ~/Backups/Ansible/{{ host.name }}/home/{{ user }}/.config/monitors.xml
+      ignore_errors: yes
+      when: '("~/Backups/Ansible/" + host.name + "/home/" + user + "/.config/monitors.xml") is file'
+
+    - name: Upload backup file for monitor settings (user).
+      copy:
+        dest: /home/{{ user }}/.config/
+        group: '{{ user }}'
+        mode: '664'
+        owner: '{{ user }}'
+        src: ~/Backups/Ansible/{{ host.name }}/home/{{ user }}/.config/monitors.xml
+      ignore_errors: yes
+      when: '("~/Backups/Ansible/" + host.name + "/home/" + user + "/.config/monitors.xml") is file'
+
+    - name: Create script to automatically remove old kernels.
+      copy:
+        content: |
+          #!/bin/bash
+
+          OLD_VERSIONS=$(dpkg -l | grep -E 'linux-image(-unsigned)?-[1-9]+' | grep '^ii' | grep -Fv $(uname -r) | awk '{print $2}' | grep -oE '[1-9][0-9.-]{2,}[0-9]' | sort -V | head -n -1)
+
+          for KERNEL_VERSION in ${OLD_VERSIONS}; do
+              apt -y purge linux-image{,-unsigned}-${KERNEL_VERSION}-generic
+          done
+        dest: /etc/cron.hourly/remove-old-kernels
+        mode: '755'
+
+    - name: Check whether Bluetooth is blocked.
+      changed_when: false
+      ignore_errors: yes
+      no_log: yes
       register: bluetooth_blocked
       shell: 'rfkill list bluetooth | grep "blocked: yes"'
       when: hardware.bluetooth.enabled
@@ -81,6 +130,14 @@
     - name: Enable Bluetooth if it is blocked.
       command: 'rfkill unblock bluetooth'
       when: hardware.bluetooth.enabled and bluetooth_blocked.rc == 0
+
+    - name: Create required directories.
+      become_user: '{{ user }}'
+      file:
+        mode: '{{ item.mode | default("0775") }}'
+        path: '{{ item.path }}'
+        state: directory
+      with_items: '{{ directories }}'
 
     # Must run before tasks that reference the shortcut such as adding items to the Plank. -- cwells
     - name: Create shortcuts for RDP access.
@@ -99,14 +156,6 @@
         mode: '644'
       when: '"rdesktop" in packages.install'
       with_items: '{{ rdp_hosts }}'
-
-    - name: Create required directories.
-      become_user: '{{ user }}'
-      file:
-        mode: '{{ item.mode | default("0775") }}'
-        path: '{{ item.path }}'
-        state: directory
-      with_items: '{{ directories }}'
 
     - name: Enable autostart applications.
       become_user: '{{ user }}'
