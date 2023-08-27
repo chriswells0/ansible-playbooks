@@ -162,13 +162,37 @@
           Comment=Remotely access {{ item }}
           Type=Application
           StartupNotify=true
-          Exec=xfreerdp /f /multimon /network:lan /sound /u:{{ user }} /v:{{ item }}
+          Exec=xfreerdp -clipboard /f /multimon /network:lan /smart-sizing:1920x1080 /sound /u:{{ user }} /v:{{ item }}
           Icon=preferences-desktop-remote-desktop
           Terminal=false
           Categories=Network;RemoteAccess;
         dest: /usr/share/applications/{{ item }}.desktop
         mode: '644'
-      when: '"rdesktop" in packages.install'
+      when: '"freerdp2-x11" in packages.install'
+      with_items: '{{ rdp_hosts }}'
+
+    - name: Create shortcut for RDP with no multi-monitor.
+      become_user: '{{ user }}'
+      copy:
+        content: |
+          #!/bin/sh
+
+          xfreerdp -clipboard /f /network:lan /smart-sizing:1920x1080 /sound /u:{{ user }} /v:{{ item }}
+        dest: ~/bin/rdp-no-multimon
+        mode: '755'
+      when: '"freerdp2-x11" in packages.install'
+      with_items: '{{ rdp_hosts }}'
+
+    - name: Create shortcut for RDP over the VPN.
+      become_user: '{{ user }}'
+      copy:
+        content: |
+          #!/bin/sh
+
+          xfreerdp -clipboard /f /network:lan /smart-sizing:1920x1080 /u:{{ user }} /v:{{ lookup('community.general.dig', (item + '.'), 'qtype=A') }}
+        dest: ~/bin/rdp-vpn
+        mode: '755'
+      when: '"freerdp2-x11" in packages.install'
       with_items: '{{ rdp_hosts }}'
 
     - name: Enable autostart applications.
