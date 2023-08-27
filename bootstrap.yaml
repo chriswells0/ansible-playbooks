@@ -9,20 +9,31 @@
 
   handlers:
 
-    - name: Sync password DB
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarted
+
+    - name: Sync FreeBSD password DB
       command: pwd_mkdb -p /etc/master.passwd
       when: ansible_system == "FreeBSD"
 
   tasks:
+
+    - name: Get the path to bash.
+      changed_when: false
+      command:
+        cmd: which bash
+      register: bash_result
 
     - name: Create a group for the ansible user.
       group:
         name: '{{ users.ansible.group }}'
         state: present
 
-    - name: Allow the group to use sudo without a password.
+    - name: Allow the Ansible group to use sudo without a password.
       lineinfile:
-        line: '%{{ users.ansible.group }} ALL=(ALL) NOPASSWD: ALL'
+        line: '%{{ users.ansible.group }} ALL=(ALL:ALL) NOPASSWD: ALL'
         path: '{{ user_etc }}/sudoers'
         regexp: '^%{{ users.ansible.group }}'
         state: present
@@ -33,12 +44,48 @@
         append: yes
         groups: '{{ users.ansible.group }}'
         name: '{{ users.ansible.name }}'
+        shell: '{{ bash_result.stdout }}'
         state: present
         system: yes
-      notify: Sync password DB
+      notify: Sync FreeBSD password DB
+
+    - name: Hide the ansible user from the SDDM login screen.
+      ignore_errors: yes
+      ini_file:
+        create: no # sddm might not be installed yet.
+        option: HideUsers
+        path: /usr/local/etc/sddm.conf
+        section: Users
+        value: '{{ users.ansible.name }}'
+      when: ansible_system == "FreeBSD"
+
+    - name: Hide the ansible user from the elementary OS login screen.
+      ini_file:
+        option: SystemAccount
+        path: '/var/lib/AccountsService/users/{{ users.ansible.name }}'
+        section: User
+        value: 'true'
+      when: ansible_distribution == "elementary OS"
 
     - name: Set SSH authorized key for the ansible user.
       authorized_key:
         key: '{{ users.ansible.public_key }}'
         state: present
         user: '{{ users.ansible.name }}'
+
+    - name: Disable password authentication and root login for SSH.
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        line: '{{ item.line }}'
+        regexp: '{{ item.regexp }}'
+        state: present
+        validate: 'sshd -T -f %s'
+      notify: Restart SSH
+      # FreeBSD: These are the defaults.
+      when: ansible_system != "FreeBSD"
+      # Linux: PermitRootLogin is prohibit-password.
+      with_items:
+        - line: 'PasswordAuthentication no'
+          regexp: '^PasswordAuthentication'
+        - line: 'PermitRootLogin no'
+          regexp: '^PermitRootLogin'
